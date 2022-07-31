@@ -1,0 +1,63 @@
+﻿@using System.Net.Http;
+
+@page "/"
+@inject PokedexService Service;
+@inject IHttpClientFactory ClientFactory;
+
+@if (Pokemons == null)
+{
+    <div class="d-flex align-center flex-column ma-10">
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true"/>
+        <MudText Typo="Typo.h5" Class="mt-4 text-center">
+            @(DownoadingAssets ? "Downloading resources from server..." : "Loading assets...")
+        </MudText>
+    </div>
+} 
+else
+{
+    <MudContainer>
+        @foreach(var pokemon in Pokemons)
+        {
+            <MudCard >
+                <MudCardMedia Image="@(pokemon.Picture)" Title="@("" + pokemon.Id)" />
+                <MudCardHeader>
+                    @pokemon.Name 
+                </MudCardHeader>
+                <MudCardContent>
+                    <MudText>@pokemon.Id</MudText>
+                    <MudIconButton Icon="@(pokemon.IsCaught ? MudBlazor.Icons.Filled.Remove : MudBlazor.Icons.Filled.Add)" />
+                </MudCardContent>
+                <MudCardActions>
+                    <MudLink Href="@("/pokemon/" + pokemon.Id)">Details</MudLink>
+                </MudCardActions>
+            </MudCard>
+        }
+    </MudContainer>
+}
+
+
+@code 
+{
+    
+    public bool StartupLoading { get; set; }
+    public bool DownoadingAssets { get; set; }
+    public IReadOnlyList<PokemonModel> Pokemons { get; protected set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        base.OnInitialized();
+        Pokemons = Service.ListPokemons();
+        if(!Pokemons.Any())
+        {
+            StartupLoading = true;
+            StaticData.Load();
+            Pokemons = Service.ListPokemons();
+            if(!Pokemons.Any())
+            {
+                DownoadingAssets = true;
+                await StaticData.DownloadAssets(ClientFactory.CreateClient());
+            }
+        }
+    }
+
+}
